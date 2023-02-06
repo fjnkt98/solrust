@@ -1,0 +1,9 @@
+[package]
+edition = "2021"
+name = "solrust_derive_internals"
+version = "0.1.0"
+
+[dependencies]
+proc-macro2 = "1.0.51"
+quote = "1.0.23"
+syn = {version = "1.0.107", features = ["derive"]}

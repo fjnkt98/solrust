@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+  "solrust",
+  "solrust_derive",
+  "solrust_derive_internals",
+]
