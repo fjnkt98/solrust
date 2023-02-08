@@ -89,6 +89,36 @@ pub fn impl_common_query_parser(input: TokenStream) -> TokenStream {
     gen.into()
 }
 
+pub fn impl_standard_query_parser(input: TokenStream) -> TokenStream {
+    let ast: DeriveInput = syn::parse(input.into()).expect("Failed to parse input TokenStream");
+    let struct_name = ast.ident;
+    let gen = quote::quote! {
+        impl SolrStandardQueryBuilder for #struct_name {
+            fn q(mut self, q: &impl SolrQueryExpression) -> Self {
+                self.params.insert("q".to_string(), q.to_string());
+                self
+            }
+
+            fn df(mut self, df: &str) -> Self {
+                self.params.insert("df".to_string(), df.to_string());
+                self
+            }
+
+            fn sow(mut self, sow: bool) -> Self {
+                if sow {
+                    self.params.insert("sow".to_string(), "true".to_string());
+                } else {
+                    self.params.insert("sow".to_string(), "false".to_string());
+                }
+                self
+            }
+
+        }
+    };
+
+    gen.into()
+}
+
 pub fn impl_dismax_query_parser(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse(input.into()).expect("Failed to parse input TokenStream");
     let struct_name = ast.ident;
@@ -214,6 +244,7 @@ pub fn impl_edismax_query_parser(input: TokenStream) -> TokenStream {
 
             fn uf(mut self, uf: &str) -> Self {
                 self.params.insert("uf".to_string(), uf.to_string());
+                self
             }
         }
     };
