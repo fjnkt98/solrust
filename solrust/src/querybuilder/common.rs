@@ -131,6 +131,29 @@ mod test {
     }
 
     #[test]
+    fn test_multiple_field_facet() {
+        let facet1 = FieldFacetBuilder::new("gender").sort(FieldFacetSortOrder::Count);
+        let facet2 = FieldFacetBuilder::new("prefecture").min_count(1);
+        let builder = CommonQueryBuilder::new().facet(&facet1).facet(&facet2);
+
+        let mut expected = vec![
+            (String::from("facet"), String::from("true")),
+            (String::from("facet.field"), String::from("gender")),
+            (String::from("f.gender.facet.sort"), String::from("count")),
+            (String::from("facet.field"), String::from("prefecture")),
+            (
+                String::from("f.prefecture.facet.mincount"),
+                String::from("1"),
+            ),
+        ];
+        let mut actual = builder.build();
+        expected.sort();
+        actual.sort();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn test_debug() {
         let builder = CommonQueryBuilder::new().wt("json");
         assert_eq!(
