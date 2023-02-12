@@ -1,10 +1,14 @@
 [package]
+authors = ["fjnkt98 <fjnkt98@gmail.com>"]
+description = "Macro definition"
 edition = "2021"
+license = "Apache-2.0"
 name = "solrust_derive"
+repository = "https://github.com/fjnkt98/solrust"
 version = "0.1.0"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-solrust_derive_internals = {path = "../solrust_derive_internals", version = "0.1.0"}
+solrust_derive_internals = "0.1.0"

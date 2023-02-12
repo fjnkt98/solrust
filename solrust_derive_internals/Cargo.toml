@@ -1,6 +1,10 @@
 [package]
+authors = ["fjnkt98 <fjnkt98@gmail.com>"]
+description = "Implementations of derive macro for solrust."
 edition = "2021"
+license = "Apache-2.0"
 name = "solrust_derive_internals"
+repository = "https://github.com/fjnkt98/solrust"
 version = "0.1.0"
 
 [dependencies]
