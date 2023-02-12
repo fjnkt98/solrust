@@ -7,9 +7,11 @@ on:
       - develop
 env:
   CARGO_TERM_COLOR: always
+  TZ: "Asia/Tokyo"
 jobs:
   run-all-tests:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - run: cargo test
+      - run: docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
+      - run: cargo test -- --include-ignored
