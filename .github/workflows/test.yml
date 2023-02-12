@@ -7,6 +7,7 @@ on:
       - develop
 env:
   CARGO_TERM_COLOR: always
+  TZ: "Asia/Tokyo"
 jobs:
   run-all-tests:
     runs-on: ubuntu-22.04
