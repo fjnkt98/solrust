@@ -1,13 +1,17 @@
+//! This module defines a custom struct to serialize chrono::DateTime to a date format
+//! accepted by Solr / deserialize Solr's date format to chrono::DateTime.
+//!
 use chrono::{DateTime, FixedOffset, Local, Utc};
 use serde::Deserialize;
 use serde_with::{DeserializeAs, SerializeAs};
 
 pub struct SolrDateTime;
 
-// ========================== DateTime<FixedOffset>の変換の実装 ============================
+// ========================== Implementation of DateTime<FixedOffset> conversion ============================
 
-/// DateTime<FixedOffset>をシリアライズするための実装
-/// UTCタイムゾーンに変換してから末尾の`+00:00`を`Z`に変換してシリアライズする
+/// Implementation for serialize DateTime<FixedOffset>.
+///
+/// Convert to UTC time zone, then serialize with convert trailing `+00:00` to `Z`
 impl SerializeAs<DateTime<FixedOffset>> for SolrDateTime {
     fn serialize_as<S>(source: &DateTime<FixedOffset>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -22,7 +26,8 @@ impl SerializeAs<DateTime<FixedOffset>> for SolrDateTime {
     }
 }
 
-/// Solrの日付フォーマットをDateTime<FixedOffset>にデシリアライズする実装
+/// Implementation to deserialize Solr date format to DateTime<FixedOffset>.
+/// Solr date format is UTC time with a trailing `Z`, so deserialize with convert trailing `Z` to `+00:00`.
 /// Solrの日付フォーマットは末尾にZが付いたUTC時刻なので、末尾のZを`+00:00`に変換してからパースする
 impl<'de> DeserializeAs<'de, DateTime<FixedOffset>> for SolrDateTime {
     fn deserialize_as<D>(deserializer: D) -> Result<DateTime<FixedOffset>, D::Error>
@@ -38,7 +43,7 @@ impl<'de> DeserializeAs<'de, DateTime<FixedOffset>> for SolrDateTime {
 
 // =========================================================================================
 
-// ========================== DateTime<Utc>の変換の実装 ============================
+// ========================== Implementation of DateTime<Utc> conversion ============================
 impl SerializeAs<DateTime<Utc>> for SolrDateTime {
     fn serialize_as<S>(source: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -63,7 +68,7 @@ impl<'de> DeserializeAs<'de, DateTime<Utc>> for SolrDateTime {
 }
 // =================================================================================
 
-// ========================== DateTime<Local>の変換の実装 ============================
+// ========================== Implementation of DateTime<Local> conversion ============================
 impl SerializeAs<DateTime<Local>> for SolrDateTime {
     fn serialize_as<S>(source: &DateTime<Local>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -100,7 +105,7 @@ mod test {
     use serde::{Deserialize, Serialize};
     use serde_with::serde_as;
 
-    // ====================== DateTime<FixedOffset>のテスト ===============================
+    // ====================== Test of DateTime<FixedOffset> ===============================
     #[serde_as]
     #[derive(Debug, Serialize, Deserialize)]
     struct DocumentWithFixedDateTimeOffset {
@@ -140,7 +145,7 @@ mod test {
     }
     // ====================================================================================
 
-    // ====================== Option<DateTime<FixedOffset>>のテスト ===============================
+    // ====================== Test of Option<DateTime<FixedOffset>> ===============================
     #[serde_as]
     #[derive(Debug, Serialize, Deserialize)]
     struct DocumentWithOptionalFixedDateTimeOffset {
@@ -195,7 +200,7 @@ mod test {
     }
     // ============================================================================================
 
-    // ====================== DateTime<Utc>のテスト ===============================
+    // ====================== Test of DateTime<Utc> ===============================
     #[serde_as]
     #[derive(Debug, Serialize, Deserialize)]
     struct DocumentWithUtcDateTimeOffset {
@@ -226,7 +231,7 @@ mod test {
     }
     // ============================================================================
 
-    // ====================== Option<DateTime<Utc>>のテスト ===============================
+    // ====================== Test of Option<DateTime<Utc>> ===============================
     #[serde_as]
     #[derive(Debug, Serialize, Deserialize)]
     struct DocumentWithOptionalUtcDateTimeOffset {
@@ -283,7 +288,7 @@ mod test {
 
     // ============================================================================
 
-    // ====================== DateTime<Local>のテスト ===============================
+    // ====================== Test of DateTime<Local> ===============================
     #[serde_as]
     #[derive(Debug, Serialize, Deserialize)]
     struct DocumentWithLocalDateTimeOffset {
@@ -315,7 +320,7 @@ mod test {
     }
     // ==============================================================================
 
-    // ====================== Option<DateTime<Local>>のテスト ===============================
+    // ====================== Test of Option<DateTime<Local>> ===============================
     #[serde_as]
     #[derive(Debug, Serialize, Deserialize)]
     struct DocumentWithOptionalLocalDateTimeOffset {
