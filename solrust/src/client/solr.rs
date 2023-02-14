@@ -1,3 +1,8 @@
+//! This module defines the SolrClient struct.
+//!
+//! SolrClient struct is responsible for connecting to a running Solr instance
+//! and creating a SolrCore struct, which represents a single Solr core.
+
 use crate::client::core::SolrCore;
 use crate::types::response::*;
 use reqwest::Client;
@@ -24,16 +29,15 @@ pub enum SolrClientError {
 
 #[derive(Debug)]
 pub struct SolrClient {
-    /// SolrインスタンスのルートURL。e.g.) http://localhost:8983
+    /// Host URL of the Solr instance. e.g.) http://localhost:8983
     url: String,
-    /// reqwest HTTPクライアント
+    /// reqwest HTTP client
     client: Client,
 }
 
 impl SolrClient {
-    /// コンストラクタ
-    /// 引数で与えられたURLはスキーマ(http)とホスト名しか使わない。
-    /// 冗長なURL(e.g.) http://localhost:8983/solr)が与えられても、ポート番号やパスはすべて無視される
+    /// Of the URL given as argument, only the schema and hostname are extracted and used.
+    /// For example, if http://localhost:8983/solr is given, all port numbers and paths are ignored.
     pub fn new(url: &str, port: u32) -> Result<Self> {
         let url = Url::parse(url).map_err(|e| SolrClientError::UrlParseError(e))?;
 
@@ -48,7 +52,7 @@ impl SolrClient {
         })
     }
 
-    /// Solrインスタンスのステータスを取得するメソッド
+    /// Methods to get the status of a Solr instance
     pub async fn status(&self) -> Result<SolrSystemInfo> {
         let path = "solr/admin/info/system";
 
@@ -72,7 +76,7 @@ impl SolrClient {
         }
     }
 
-    /// Solrインスタンスに存在するコアの一覧を取得するメソッド
+    ///  Method to get a list of cores present in the Solr instance
     pub async fn cores(&self) -> Result<SolrCoreList> {
         let path = "solr/admin/cores";
 
@@ -96,7 +100,7 @@ impl SolrClient {
         }
     }
 
-    /// Solrコアオブジェクトを取得するメソッド
+    /// Method to create SolrCore struct
     pub async fn core(&self, name: &str) -> Result<SolrCore> {
         let cores = self
             .cores()
@@ -116,34 +120,35 @@ impl SolrClient {
 mod tests {
     use super::*;
 
-    /// Solrクライアント作成の通常系テスト
+    /// Normal system test of SolrClient creation
     #[test]
     fn test_create_solr_client() {
         let client = SolrClient::new("http://localhost", 8983).unwrap();
         assert_eq!(client.url, "http://localhost:8983");
     }
 
-    /// Solrクライアント作成の通常系テスト
+    /// Normal system test of SolrClient creation.
     ///
-    /// 冗長なURLを与えられたときの動作を確認する。
-    /// 与えられたURLのスキーマとホストのみを読み取る仕様なので、冗長なURLを与えられても
-    /// スキーマとホスト以外の情報は無視される。
+    /// Check the behavior when given a redundant URL.
+    /// Only the schema and host of the given URL are extracted. So even if a URL with additional
+    /// information beyond the schema and host is provided, it will be ignored.
     #[test]
     fn test_create_solr_client_with_redundant_url() {
         let client = SolrClient::new("http://localhost:8983/solr", 8983).unwrap();
         assert_eq!(client.url, "http://localhost:8983");
     }
 
-    /// Solrクライアント作成の異常系テスト
+    /// Anomaly system test of SolrClient creation.
+    /// Creation fails if an invalid URL is given.
     #[test]
     fn test_create_solr_client_with_invalid_url() {
         let client = SolrClient::new("hogehoge", 3000);
         assert!(client.is_err());
     }
 
-    /// Solrクライアントのステータス取得の正常系テスト
+    /// Normal system test of SolrClient status acquisition
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -157,9 +162,9 @@ mod tests {
         assert_eq!(response.header.status, 0);
     }
 
-    /// コア一覧取得の正常系テスト
+    /// Normal system test of core list acquisition
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -173,9 +178,9 @@ mod tests {
         assert!(response.status.unwrap().contains_key("example"));
     }
 
-    /// コア一覧を文字列のベクタとして取得する機能の正常系テスト
+    /// Normal system test of the function to get the core list as a vector of String.
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -190,9 +195,9 @@ mod tests {
         assert_eq!(cores, vec![String::from("example")]);
     }
 
-    /// コアオブジェクト取得メソッドの正常系テスト
+    /// Normal system test of the function to create SolrCore object
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -206,9 +211,10 @@ mod tests {
         assert_eq!(core.name, String::from("example"));
     }
 
-    /// 存在しないコアを指定したときのテスト
+    /// Anomaly system test when a nonexistent core name is specified.
+    /// SolrClient::core() method will return error.
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
