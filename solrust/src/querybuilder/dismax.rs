@@ -1,3 +1,5 @@
+//! This module provides definition and implementation of Solr DisMax Query Parser.
+
 use crate::querybuilder::common::SolrCommonQueryBuilder;
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
@@ -5,19 +7,35 @@ use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::{SolrCommonQueryParser, SolrDisMaxQueryParser};
 use std::collections::HashMap;
 
+/// The trait of builder that generates parameter for [Solr Standard Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html).
 pub trait SolrDisMaxQueryBuilder: SolrCommonQueryBuilder {
+    /// Add [q parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#q-parameter).
     fn q(self, q: String) -> Self;
+    /// Add [qf parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#qf-query-fields-parameter).
     fn qf(self, qf: &str) -> Self;
+    /// Add [qs parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#qs-query-phrase-slop-parameter).
     fn qs(self, qs: u32) -> Self;
+    /// Add [pf parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#pf-phrase-fields-parameter).
     fn pf(self, pf: &str) -> Self;
+    /// Add [ps parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#ps-phrase-slop-parameter).
     fn ps(self, ps: u32) -> Self;
+    /// Add [mm parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#mm-minimum-should-match-parameter).
     fn mm(self, mm: &str) -> Self;
+    /// Add [q.alt parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#q-alt-parameter).
     fn q_alt(self, q: &impl SolrQueryExpression) -> Self;
+    /// Add [tie parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#the-tie-tie-breaker-parameter).
     fn tie(self, tie: f64) -> Self;
+    /// Add [bq parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#bq-boost-query-parameter).
+    ///
+    /// `bq` parameter will be added as many times as this method is called.
     fn bq(self, bq: &impl SolrQueryExpression) -> Self;
+    /// Add [bf parameter](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html#bf-boost-functions-parameter).
+    ///
+    /// `bf` parameter will be added as many times as this method is called.
     fn bf(self, bf: &str) -> Self;
 }
 
+/// Implementation of DisMax Common Query Parser.
 #[derive(SolrCommonQueryParser, SolrDisMaxQueryParser)]
 pub struct DisMaxQueryBuilder {
     params: HashMap<String, String>,

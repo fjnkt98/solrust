@@ -1,12 +1,11 @@
-/// ファセット検索のためのクエリパラメータを生成するビルダのトレイト
+//! This module defines the traits and structs that generates query parameters for facet search.
+
+/// Build parameters for facet search.
 pub trait FacetBuilder {
     fn build(&self) -> Vec<(String, String)>;
 }
 
-/// フィールドファセットのソート順
-///
-/// - Index: ファセット結果を辞書順で返す
-/// - Count: ファセット結果をカウント数順で返す
+/// Sort order for field facet.
 ///
 /// https://solr.apache.org/guide/solr/latest/query-guide/faceting.html#field-value-faceting-parameters:~:text=a%20regular%20expression.-,facet.sort,-Optional
 pub enum FieldFacetSortOrder {
@@ -14,7 +13,7 @@ pub enum FieldFacetSortOrder {
     Count,
 }
 
-/// フィールドファセット時にSolrが使用するアルゴリズム
+/// Type of algorithm or method that Solr should use when faceting a field.
 ///
 /// https://solr.apache.org/guide/solr/latest/query-guide/faceting.html#field-value-faceting-parameters:~:text=in%20the%20response.-,facet.method,-Optional
 pub enum FieldFacetMethod {
@@ -23,7 +22,7 @@ pub enum FieldFacetMethod {
     Fcs,
 }
 
-/// フィールドファセットのためのパラメータを生成するビルダ
+/// Implementation of the builder generates parameters for field facetting.
 pub struct FieldFacetBuilder {
     field: String,
     prefix: Option<String>,
@@ -55,21 +54,25 @@ impl FieldFacetBuilder {
         }
     }
 
+    /// Add `f.<FIELD_NAME>.facet.prefix` parameter.
     pub fn prefix(mut self, prefix: &str) -> Self {
         self.prefix = Some(prefix.to_string());
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.contains` parameter.
     pub fn contains(mut self, contains: &str) -> Self {
         self.contains = Some(contains.to_string());
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.ignoreCase` parameter.
     pub fn ignore_case(mut self, ignore_case: bool) -> Self {
         self.ignore_case = Some(ignore_case);
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.sort` parameter.
     pub fn sort(mut self, sort: FieldFacetSortOrder) -> Self {
         self.sort = Some(match sort {
             FieldFacetSortOrder::Count => "count".to_string(),
@@ -78,26 +81,31 @@ impl FieldFacetBuilder {
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.limit` parameter.
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.offset` parameter.
     pub fn offset(mut self, offset: u32) -> Self {
         self.offset = Some(offset);
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.mincount` parameter.
     pub fn min_count(mut self, min_count: u32) -> Self {
         self.min_count = Some(min_count);
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.missing` parameter.
     pub fn missing(mut self, missing: bool) -> Self {
         self.missing = Some(missing);
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.method` parameter.
     pub fn method(mut self, method: FieldFacetMethod) -> Self {
         self.method = Some(match method {
             FieldFacetMethod::Enum => "enum".to_string(),
@@ -107,6 +115,7 @@ impl FieldFacetBuilder {
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.exists` parameter.
     pub fn exists(mut self, exists: bool) -> Self {
         self.exists = Some(exists);
         self
@@ -183,13 +192,6 @@ pub enum RangeFacetOtherOptions {
     None,
 }
 
-/// レンジの境界値の扱いを制御するパラメータ
-///
-/// - Lower: レンジを右半開区間で扱う
-/// - Upper: レンジを左半開区間で扱う
-/// - Edge: 一番最初の区間の下限境界値と、一番最後の区間の上限境界値を含む
-/// - Outer: 境界値はどちらの区間にも含まれる？
-/// - All: すべてのオプションを適用する
 pub enum RangeFacetIncludeOptions {
     Lower,
     Upper,
@@ -198,7 +200,7 @@ pub enum RangeFacetIncludeOptions {
     All,
 }
 
-/// レンジファセットのためのパラメータを生成するビルダ
+/// Implementation of the builder generates parameters for range facetting.
 pub struct RangeFacetBuilder {
     field: String,
     start: String,
@@ -222,16 +224,19 @@ impl RangeFacetBuilder {
         }
     }
 
+    /// Add `f.<FIELD_NAME>.facet.range.hardend` parameter.
     pub fn hardend(mut self, hardend: bool) -> Self {
         self.hardend = Some(hardend);
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.range.other` parameter.
     pub fn other(mut self, other: RangeFacetOtherOptions) -> Self {
         self.other = Some(other);
         self
     }
 
+    /// Add `f.<FIELD_NAME>.facet.range.include` parameter.
     pub fn include(mut self, include: RangeFacetIncludeOptions) -> Self {
         self.include = Some(include);
         self
