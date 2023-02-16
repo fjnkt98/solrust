@@ -28,7 +28,6 @@ impl SerializeAs<DateTime<FixedOffset>> for SolrDateTime {
 
 /// Implementation to deserialize Solr date format to DateTime<FixedOffset>.
 /// Solr date format is UTC time with a trailing `Z`, so deserialize with convert trailing `Z` to `+00:00`.
-/// Solrの日付フォーマットは末尾にZが付いたUTC時刻なので、末尾のZを`+00:00`に変換してからパースする
 impl<'de> DeserializeAs<'de, DateTime<FixedOffset>> for SolrDateTime {
     fn deserialize_as<D>(deserializer: D) -> Result<DateTime<FixedOffset>, D::Error>
     where
