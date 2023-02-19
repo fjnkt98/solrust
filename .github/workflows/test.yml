@@ -1,10 +1,12 @@
 name: run-tests
 run-name: run-tests
 on:
+  push:
+    branches:
+      - master
   pull_request:
     branches:
       - master
-      - develop
 env:
   CARGO_TERM_COLOR: always
   TZ: "Asia/Tokyo"
