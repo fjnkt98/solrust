@@ -1,3 +1,10 @@
+//! This module defines the SolrCore struct.
+//!
+//! The SolrCore struct is an abstraction of operations on the Solr core.
+//!
+//! Operations such as obtaining core status, posting and searching documents,
+//! and reload core can be performed through this struct.
+
 use crate::types::response::*;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
@@ -36,6 +43,8 @@ impl SolrCore {
             client: reqwest::Client::new(),
         }
     }
+
+    /// Method to get core status.
     pub async fn status(&self) -> Result<SolrCoreStatus> {
         let response = self
             .client
@@ -57,17 +66,17 @@ impl SolrCore {
             return Err(SolrCoreError::UnexpectedError((error.code, error.msg)));
         }
 
-        // コアオブジェクトが作成できた時点で
+        // Once the core object has been created,
+        // 1. the `status` field must be present in the response JSON
+        // 2. the key of the `status` field must contain this core
         //
-        // 1. レスポンスのJSONに`status`フィールドが存在すること
-        // 2. `status`フィールドのキーにこのコアが含まれていること
-        //
-        // が保証されているので、`unwrap()`を使用している。
+        // is guaranteed, so `unwrap()` is used.
         let status = core_list.status.unwrap().get(&self.name).unwrap().clone();
 
         Ok(status)
     }
 
+    /// Method to request the core to reload.
     pub async fn reload(&self) -> Result<u32> {
         let response = self
             .client
@@ -92,6 +101,7 @@ impl SolrCore {
         Ok(response.header.status)
     }
 
+    /// Method to send request the core to search the document with some query parameters.
     pub async fn select<D>(
         &self,
         params: &Vec<(impl Serialize, impl Serialize)>,
@@ -122,6 +132,7 @@ impl SolrCore {
         Ok(selection)
     }
 
+    /// TODO: Method to request the core to analyze given word.
     // pub async fn analyze(&self, word: &str, field: &str, analyzer: &str) -> Result<Vec<String>> {
     //     todo!();
     // let params = [("analysis.fieldvalue", word), ("analysis.fieldtype", field)];
@@ -159,6 +170,8 @@ impl SolrCore {
     // Ok(result)
     // }
 
+    /// Method to post the document to the core.
+    /// The document to be posted must be a JSON string.
     pub async fn post(&self, body: Vec<u8>) -> Result<SolrSimpleResponse> {
         let response = self
             .client
@@ -180,6 +193,9 @@ impl SolrCore {
         Ok(post_result)
     }
 
+    /// Method to send request the core to commit the post.
+    ///
+    /// When optimize is true, this method request to commit with optimization.
     pub async fn commit(&self, optimize: bool) -> Result<()> {
         if optimize {
             self.post(br#"{"optimize": {}}"#.to_vec()).await?;
@@ -190,12 +206,14 @@ impl SolrCore {
         Ok(())
     }
 
+    /// Method to send request the core to rollback the post.
     pub async fn rollback(&self) -> Result<()> {
         self.post(br#"{"rollback": {}}"#.to_vec()).await?;
 
         Ok(())
     }
 
+    /// Method to send a request to the core to delete all existing documents.
     pub async fn truncate(&self) -> Result<()> {
         self.post(br#"{"delete":{"query": "*:*"}}"#.to_vec())
             .await?;
@@ -211,9 +229,9 @@ mod test {
     use serde::Deserialize;
     use serde_json::{self, Value};
 
-    /// コアのステータス取得メソッドの正常系テスト
+    /// Normal system test to get core status.
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -227,12 +245,12 @@ mod test {
         assert_eq!(status.name, String::from("example"));
     }
 
-    /// コアのリロードメソッドの正常系テスト
+    /// Normal system test of reload of the core.
     ///
-    /// コアのリロード実行時の時刻と、リロード後のコアのスタートタイムの差が1秒以内なら
-    /// リロードが実行されたと判断する。
+    /// The reload is considered successful if the time elapsed between the start of the reload
+    /// and the start of the reloaded core is less than or equal to 1 second.
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -263,6 +281,13 @@ mod test {
         id: i64,
     }
 
+    /// Normal system test of the function to search documents.
+    ///
+    /// Run this test with the Docker container started with the following command.
+    ///
+    /// ```ignore
+    /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
+    /// ```
     #[tokio::test]
     #[ignore]
     async fn test_select_in_normal() {
@@ -274,6 +299,9 @@ mod test {
         assert_eq!(response.header.status, 0);
     }
 
+    /// Anomaly system test of the function to search documents.
+    ///
+    /// If nonexistent field was specified, select() method will return error.
     #[tokio::test]
     #[ignore]
     async fn test_select_in_non_normal() {
@@ -285,11 +313,9 @@ mod test {
         assert!(response.is_err());
     }
 
-    /// 単語の解析メソッドの正常系テスト
+    /// Normal system test of the function to analyze the word.
     ///
-    /// とりあえずエラーが出ないことを確認する。
-    ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -307,9 +333,9 @@ mod test {
     //     assert_eq!(expected, actual);
     // }
 
-    /// コアへのドキュメントのポスト・コアのリロード・ドキュメントの検索・ドキュメントの削除の一連の処理の動作をテストするテストシナリオ
+    /// Test scenario to test the behavior of a series of process: post documents to core, reload core, search for document, delete documents.
     ///
-    /// 以下のコマンドでDockerコンテナを起動してからテストを実行すること。
+    /// Run this test with the Docker container started with the following command.
     ///
     /// ```ignore
     /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
@@ -319,7 +345,7 @@ mod test {
     async fn test_scenario() {
         let core = SolrCore::new("example", "http://localhost:8983");
 
-        // Schema APIを使ってテスト用のスキーマを定義
+        // Define schema for test with Schema API
         let client = reqwest::Client::new();
         client
             .post(format!("{}/schema", core.core_url))
@@ -360,7 +386,7 @@ mod test {
             .await
             .unwrap();
 
-        // テスト用のドキュメント
+        // Documents for test
         let documents = serde_json::json!(
             [
                 {
@@ -384,19 +410,18 @@ mod test {
         .as_bytes()
         .to_vec();
 
-        // リロード(Schema APIを使っているので不要だけど動作テストなので)
+        // Reload core (Only for operation check)
         core.reload().await.unwrap();
 
-        // ドキュメントをポスト
+        // Post the documents to core.
         core.post(documents).await.unwrap();
-        // コミット
         core.commit(true).await.unwrap();
         let status = core.status().await.unwrap();
 
-        // 3件のドキュメントが登録されていることを確認
+        // Verify that 3 documents are registered.
         assert_eq!(status.index.num_docs, 3);
 
-        // 検索のテスト
+        // Test to search document
         let params = vec![
             ("q".to_string(), "name:alice".to_string()),
             ("fl".to_string(), "id,name,gender".to_string()),
@@ -408,10 +433,11 @@ mod test {
             vec![serde_json::json!({"id": "001", "name": "alice", "gender": "female"})]
         );
 
-        // ドキュメントをすべて削除
+        // Delete all documents.
         core.truncate().await.unwrap();
         core.commit(true).await.unwrap();
         let status = core.status().await.unwrap();
+        // Verify that no documents in index.
         assert_eq!(status.index.num_docs, 0);
     }
 }

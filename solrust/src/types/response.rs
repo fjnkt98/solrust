@@ -1,9 +1,6 @@
+//! This module defines the models of the Solr REST API response.
+
 use crate::types::datetime::SolrDateTime;
-/// 命名規則
-///
-/// - Solrから返ってくるレスポンス本体のモデル -> SolrXXXXResponse
-/// - レスポンスの一部 -> SolrXXXX(Header|Body|Info|e.t.c)
-///
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
 use serde::de::Error;
@@ -12,6 +9,7 @@ use serde_json::Value;
 use serde_with::serde_as;
 use std::collections::HashMap;
 
+/// Model of `responseHeader` field.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrResponseHeader {
     pub status: u32,
@@ -20,6 +18,7 @@ pub struct SolrResponseHeader {
     pub params: Option<HashMap<String, Value>>,
 }
 
+/// Model of `error` field.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrErrorInfo {
     pub metadata: Vec<String>,
@@ -27,6 +26,8 @@ pub struct SolrErrorInfo {
     pub code: u32,
 }
 
+/// Model of `lucene` field in the response JSON of
+/// a request to `/solr/admin/info/system`.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LuceneInfo {
     #[serde(alias = "solr-spec-version")]
@@ -39,6 +40,7 @@ pub struct LuceneInfo {
     pub lucene_impl_version: String,
 }
 
+/// Model of the response JSON of a request to `/solr/admin/info/system`.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrSystemInfo {
     #[serde(alias = "responseHeader")]
@@ -53,6 +55,8 @@ pub struct SolrSystemInfo {
     pub error: Option<SolrErrorInfo>,
 }
 
+/// Model of the `index` field in the response JSON of
+/// a request to `/solr/admin/cores`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SolrIndexInfo {
     #[serde(alias = "numDocs")]
@@ -79,6 +83,8 @@ pub struct SolrIndexInfo {
     pub size: String,
 }
 
+/// Model of the `status.<CORE_NAME>` field in the response JSON
+/// of a request to `/solr/admin/cores`.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SolrCoreStatus {
     pub name: String,
@@ -94,6 +100,7 @@ pub struct SolrCoreStatus {
     pub index: SolrIndexInfo,
 }
 
+/// Model of the response JSON of a request to `/solr/admin/cores`.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrCoreList {
     #[serde(alias = "responseHeader")]
@@ -105,6 +112,7 @@ pub struct SolrCoreList {
 }
 
 impl SolrCoreList {
+    /// Return vector of the name of Solr cores present in the Solr instance.
     pub fn as_vec(&self) -> Option<Vec<String>> {
         if let Some(cores) = &self.status {
             Some(cores.keys().cloned().collect())
@@ -114,6 +122,7 @@ impl SolrCoreList {
     }
 }
 
+/// Model of the simple response JSON, such as reload core request.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrSimpleResponse {
     #[serde(alias = "responseHeader")]
@@ -121,6 +130,7 @@ pub struct SolrSimpleResponse {
     pub error: Option<SolrErrorInfo>,
 }
 
+/// Model of the response JSON of a search request.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrSelectResponse<T> {
     #[serde(alias = "responseHeader")]
@@ -130,6 +140,7 @@ pub struct SolrSelectResponse<T> {
     pub error: Option<SolrErrorInfo>,
 }
 
+/// Model of the `response` field in the response JSON of a search request response.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrSelectBody<T> {
     #[serde(alias = "numFound")]
@@ -141,6 +152,7 @@ pub struct SolrSelectBody<T> {
     pub docs: Vec<T>,
 }
 
+/// Model of the `facet_counts` field in the response JSON of a search request response.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrFacetBody {
     pub facet_queries: Value,
@@ -152,6 +164,7 @@ pub struct SolrFacetBody {
     pub facet_heatmaps: Value,
 }
 
+/// Function to deserialize an array with alternating fields and counts for Rust.
 fn deserialize_facet_fields<'de, D>(
     deserializer: D,
 ) -> Result<HashMap<String, Vec<(String, u32)>>, D::Error>
@@ -180,9 +193,10 @@ where
     Ok(value)
 }
 
-/// レンジファセットの結果をデシリアライズする関数
+/// Function to deserialize the result of a range facet.
 ///
-/// レンジファセットの結果の型はフィールドの型依存なのでアドホックに場合分けする必要があった
+/// The type of the result of a range facet depends on the type of the field,
+/// so it was necessary to split the case ad-hoc.
 fn deserialize_facet_ranges<'de, D>(
     deserializer: D,
 ) -> Result<HashMap<String, SolrRangeFacetKind>, D::Error>
@@ -225,7 +239,7 @@ where
                         })?;
                     result.insert(field.to_string(), SolrRangeFacetKind::DateTime(value));
                 } else {
-                    // TODO; 数値、日付型以外のレンジファセットがあったら処理を追加する
+                    // TODO: add process if there is a range facet other than numeric of date type.
                     return Err(D::Error::custom("Unexpected range facet value type."));
                 }
             }
@@ -237,6 +251,7 @@ where
     Ok(result)
 }
 
+/// Enum of the kind of Solr range facet.
 #[derive(Serialize, Deserialize, Debug)]
 pub enum SolrRangeFacetKind {
     Integer(SolrIntegerRangeFacet),
@@ -244,6 +259,7 @@ pub enum SolrRangeFacetKind {
     DateTime(SolrDateTimeRangeFacet),
 }
 
+/// Model of the result of integer range facet.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrIntegerRangeFacet {
     #[serde(deserialize_with = "deserialize_range_facet_counts")]
@@ -256,6 +272,7 @@ pub struct SolrIntegerRangeFacet {
     pub between: Option<i64>,
 }
 
+/// Model of the result of float range facet.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrFloatRangeFacet {
     #[serde(deserialize_with = "deserialize_range_facet_counts")]
@@ -268,6 +285,7 @@ pub struct SolrFloatRangeFacet {
     pub between: Option<f64>,
 }
 
+/// Model of the result of datetime range facet.
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrDateTimeRangeFacet {
@@ -289,9 +307,7 @@ pub struct SolrDateTimeRangeFacet {
     pub between: Option<DateTime<FixedOffset>>,
 }
 
-/// ファセットの結果の配列をRustが扱える配列にデシリアライズする関数
-///
-/// Solrのファセットの結果は「文字列、数値」が交互に格納された配列で返ってくる。Rustは型が混じった配列を扱えないので、タプルのリストに変換する。
+/// Function to deserialize an array with alternating fields and counts for Rust.
 fn deserialize_range_facet_counts<'de, D>(deserializer: D) -> Result<Vec<(String, u32)>, D::Error>
 where
     D: Deserializer<'de>,
@@ -311,12 +327,14 @@ where
     Ok(value)
 }
 
+/// Model of the `analysis` field in the response JSON of a request to `/solr/<CORE_NAME>/analysis/field`.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrAnalysisBody {
     pub field_types: HashMap<String, SolrAnalysisField>,
     pub field_names: HashMap<String, SolrAnalysisField>,
 }
 
+/// Model of the `field_types` or `field_names` field in the response JSON of a request to `/solr/<CORE_NAME>/analysis/field`.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrAnalysisField {
     pub index: Option<Vec<Value>>,
@@ -334,7 +352,6 @@ pub struct SolrAnalysisResponse {
 #[cfg(test)]
 mod test {
     use super::*;
-    // TODO: テスト書く
 
     #[test]
     fn test_deserialize_response_header() {

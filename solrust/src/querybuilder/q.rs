@@ -1,23 +1,31 @@
+//! This module defines structs represent query operand and query expression for Solr Standard Query Parser.
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::fmt::{Display, Formatter};
 use std::ops;
 
+/// Regex object for sanitizing the [Solr special characters](https://solr.apache.org/guide/solr/latest/query-guide/standard-query-parser.html#escaping-special-characters).
 static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"(\+|\-|&&|\|\||!|\(|\)|\{|\}|\[|\]|\^|"|\~|\*|\?|:|/|AND|OR)"#).unwrap()
 });
 
+/// Marker trait of Solr query expression.
 pub trait SolrQueryExpression: Display {}
+
+/// Marker trait of Solr query operand model: standard, boost, phrase query, etc.
 pub trait SolrQueryOperandModel {}
 
+/// Kind of Solr query expression.
 pub enum QueryExpressionKind {
     Operand(QueryOperand),
     Expression(QueryExpression),
 }
 
-/// クエリ検索式を表すタプル構造体
-/// 検索式をラップする役割を持つ。この構造体にAddトレイトとMulトレイトを実装することで検索式の加算・乗算を実装する
-/// 検索式は文字列の形式で取るので、任意の検索式を入れることができるが、構文が正しいことを保証することはできない。
+/// Tuple struct representing a query expression.
+///
+/// This is responsible for wrapping the search expression. Implement addition and multiplication of the expressions(corresponding OR and AND searches) by implementing Add and Mul traits in this struct.
+/// The search expression is taken in the form of a String, so any search expression can ben included, but it cannot be guaranteed that the syntax is correct.
 pub struct QueryOperand(pub String);
 
 impl SolrQueryExpression for QueryOperand {}
@@ -35,7 +43,7 @@ impl From<&str> for QueryOperand {
     }
 }
 
-/// QueryOperand同士の加算の定義
+/// Implement the addition between QueryOperand.
 impl ops::Add<QueryOperand> for QueryOperand {
     type Output = QueryExpression;
 
@@ -50,7 +58,7 @@ impl ops::Add<QueryOperand> for QueryOperand {
     }
 }
 
-/// QueryOperand同士の乗算の定義
+/// Implement the multiplication between QueryOperand.
 impl ops::Mul<QueryOperand> for QueryOperand {
     type Output = QueryExpression;
 
@@ -65,7 +73,7 @@ impl ops::Mul<QueryOperand> for QueryOperand {
     }
 }
 
-/// QueryOperand + QueryExpressionの定義
+/// Implement the addition of QueryOperand and QueryExpression.
 impl ops::Add<QueryExpression> for QueryOperand {
     type Output = QueryExpression;
 
@@ -90,7 +98,7 @@ impl ops::Add<QueryExpression> for QueryOperand {
     }
 }
 
-/// QueryOperand * QueryExpressionの定義
+/// Implement the multiplication of QueryOperand and QueryExpression.
 impl ops::Mul<QueryExpression> for QueryOperand {
     type Output = QueryExpression;
 
@@ -121,22 +129,19 @@ pub enum Operator {
     OR,
 }
 
-/// 複数のクエリ検索式を論理演算子で結合したクエリを表す構造体
+/// Struct representing query expression, that is multiple query operand or query expression combined with logical operators.
 pub struct QueryExpression {
     pub operator: Operator,
     pub operands: Vec<QueryExpressionKind>,
 }
 
-/// ベクタからQueryExpressionを生成するためのヘルパートレイト
-///
-/// - sum: text_ja:foo OR text_ja:bar OR text_ja:baz ...のような検索式をベクタから作るメソッド
-/// - prod: text_ja:foo AND text_ja:bar AND text_ja:baz ...のような検索式をベクタから作るメソッド
+/// Trait that implement helper methods that generate QueryExpression from a vector of query operand.
 pub trait Aggregation<T: SolrQueryExpression> {
     fn sum(operands: Vec<T>) -> QueryExpression;
     fn prod(operands: Vec<T>) -> QueryExpression;
 }
 
-/// QueryOperandのベクタからQueryExpressionを生成するメソッドの実装
+/// Implementation of the method that generates QueryExpression from a vector of QueryOperand.
 impl Aggregation<QueryOperand> for QueryExpression {
     fn sum(operands: Vec<QueryOperand>) -> QueryExpression {
         QueryExpression {
@@ -159,7 +164,7 @@ impl Aggregation<QueryOperand> for QueryExpression {
     }
 }
 
-/// QueryOperandのベクタからQueryExpressionを生成するメソッドの実装
+/// Implementation of the method that generates QueryExpression from a vector of QueryExpression.
 impl Aggregation<QueryExpression> for QueryExpression {
     fn sum(operands: Vec<QueryExpression>) -> QueryExpression {
         QueryExpression {
@@ -191,6 +196,7 @@ impl Display for QueryExpression {
             Operator::OR => " OR ",
         };
 
+        // Convert elements of a vector recursively into a String.
         let s = self
             .operands
             .iter()
@@ -206,7 +212,7 @@ impl Display for QueryExpression {
     }
 }
 
-/// QueryExpression同士の加算の定義
+/// Implement the addition between QueryExpression.
 impl ops::Add<QueryExpression> for QueryExpression {
     type Output = QueryExpression;
 
@@ -232,7 +238,7 @@ impl ops::Add<QueryExpression> for QueryExpression {
     }
 }
 
-/// QueryExpression同士の乗算の定義
+/// Implement the multiplication between QueryExpression.
 impl ops::Mul<QueryExpression> for QueryExpression {
     type Output = QueryExpression;
 
@@ -258,7 +264,7 @@ impl ops::Mul<QueryExpression> for QueryExpression {
     }
 }
 
-/// QueryExpression + QueryOperandの定義
+/// Implement the addition of QueryExpression and QueryOperand.
 impl ops::Add<QueryOperand> for QueryExpression {
     type Output = QueryExpression;
 
@@ -279,7 +285,7 @@ impl ops::Add<QueryOperand> for QueryExpression {
     }
 }
 
-/// QueryExpression * QueryOperandの定義
+/// Implement the multiplication of QueryExpression and QueryOperand.
 impl ops::Mul<QueryOperand> for QueryExpression {
     type Output = QueryExpression;
 
@@ -300,7 +306,7 @@ impl ops::Mul<QueryOperand> for QueryExpression {
     }
 }
 
-/// プレーンな検索式を構築するためのヘルパー構造体
+/// Struct to building plain search expression(e.g. text_en:foo)
 pub struct StandardQueryOperand {
     field: String,
     word: String,
@@ -326,14 +332,13 @@ impl Display for StandardQueryOperand {
     }
 }
 
-/// QueryOperand型への変換の実装
 impl From<StandardQueryOperand> for QueryOperand {
     fn from(op: StandardQueryOperand) -> QueryOperand {
         QueryOperand(op.to_string())
     }
 }
 
-/// 範囲検索式を構築するためのヘルパー構造体
+/// Struct to building range search expression(e.g. text_en:[* TO *])
 pub struct RangeQueryOperand {
     field: String,
     start: Option<String>,
@@ -402,7 +407,6 @@ impl Display for RangeQueryOperand {
     }
 }
 
-/// QueryOperand型への変換の実装
 impl From<RangeQueryOperand> for QueryOperand {
     fn from(op: RangeQueryOperand) -> QueryOperand {
         QueryOperand(op.to_string())

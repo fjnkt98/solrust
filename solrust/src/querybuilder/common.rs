@@ -1,22 +1,44 @@
+//! This module provides definition and implementation of Solr Common Query Parser.
+
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
 use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::SolrCommonQueryParser;
 use std::collections::HashMap;
 
+/// The trait of builder that generates parameter for [Solr Common Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html).
 pub trait SolrCommonQueryBuilder {
+    /// Add [sort parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#sort-parameter)
     fn sort(self, sort: &SortOrderBuilder) -> Self;
+    /// Add [start parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#start-parameter)
     fn start(self, start: u32) -> Self;
+    /// Add [rows parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#rows-parameter)
     fn rows(self, rows: u32) -> Self;
+    /// Add [fq parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#fq-filter-query-parameter)
+    ///
+    /// `fq` parameter will be added as many times as this method is called.
     fn fq(self, fq: &impl SolrQueryExpression) -> Self;
+    /// Add [fl parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#fl-field-list-parameter)
     fn fl(self, fl: String) -> Self;
+    /// Add parameters for [debug](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#debug-parameter).
+    ///
+    /// Calling this method will add the parameters `debug=all` and `debug.explain.structured=true`.
     fn debug(self) -> Self;
+    /// Add [wt parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#wt-parameter)
     fn wt(self, wt: &str) -> Self;
+    /// Add [facet parameters](https://solr.apache.org/guide/solr/latest/query-guide/faceting.html).
+    ///
+    /// facet parameters will be added as many times as this method is called.
     fn facet(self, facet: &impl FacetBuilder) -> Self;
+    /// Add `q.op` parameter.
+    ///
+    /// This parameter is not a Solr Common Query Parser parameter, but is defined here because it is used by all other query parsers.
     fn op(self, op: Operator) -> Self;
+    /// Build the parameters.
     fn build(self) -> Vec<(String, String)>;
 }
 
+/// Implementation of Solr Common Query Parser.
 #[derive(SolrCommonQueryParser)]
 pub struct CommonQueryBuilder {
     params: HashMap<String, String>,

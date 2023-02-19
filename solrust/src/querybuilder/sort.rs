@@ -1,3 +1,5 @@
+//! This module defines builder struct that build the value for `sort` parameter.
+
 pub struct SortOrderBuilder {
     order: Vec<String>,
 }

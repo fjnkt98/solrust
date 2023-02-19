@@ -1,3 +1,5 @@
+//! This module provides definition and implementation of Solr eDisMax Query Parser.
+
 use crate::querybuilder::common::SolrCommonQueryBuilder;
 use crate::querybuilder::dismax::SolrDisMaxQueryBuilder;
 use crate::querybuilder::facet::FacetBuilder;
@@ -6,18 +8,29 @@ use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::{SolrCommonQueryParser, SolrDisMaxQueryParser, SolrEDisMaxQueryParser};
 use std::collections::HashMap;
 
+/// The trait of builder that generates parameter for [Solr eDisMax Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/edismax-query-parser.html).
 pub trait SolrEDisMaxQueryBuilder: SolrDisMaxQueryBuilder {
+    /// Add `sow` parameter.
     fn sow(self, sow: bool) -> Self;
+    /// Add `boost` parameter.
     fn boost(self, boost: &str) -> Self;
+    /// Add `lowercaseOperators` parameter.
     fn lowercase_operators(self, flag: bool) -> Self;
+    /// Add `pf2` parameter.
     fn pf2(self, pf: &str) -> Self;
+    /// Add `ps2` parameter.
     fn ps2(self, ps: u32) -> Self;
+    /// Add `pf3` parameter.
     fn pf3(self, pf: &str) -> Self;
+    /// Add `ps3` parameter.
     fn ps3(self, ps: u32) -> Self;
+    /// Add `stopwords` parameter.
     fn stopwords(self, flag: bool) -> Self;
+    /// Add `uf` parameter.
     fn uf(self, uf: &str) -> Self;
 }
 
+/// Implementation of Solr eDisMax Query Parser.
 #[derive(SolrCommonQueryParser, SolrDisMaxQueryParser, SolrEDisMaxQueryParser)]
 pub struct EDisMaxQueryBuilder {
     params: HashMap<String, String>,

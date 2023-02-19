@@ -1,3 +1,5 @@
+//! This module provides definition and implementation of Solr Standard Query Parser.
+
 use crate::querybuilder::common::SolrCommonQueryBuilder;
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
@@ -5,12 +7,17 @@ use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::{SolrCommonQueryParser, SolrStandardQueryParser};
 use std::collections::HashMap;
 
+/// The trait of builder that generates parameter for [Solr Standard Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/standard-query-parser.html).
 pub trait SolrStandardQueryBuilder: SolrCommonQueryBuilder {
+    /// Add `q` parameter.
     fn q(self, q: &impl SolrQueryExpression) -> Self;
+    /// Add `df` parameter.
     fn df(self, df: &str) -> Self;
+    /// Add `sow` parameter.
     fn sow(self, sow: bool) -> Self;
 }
 
+/// Implementation of Solr Standard Query Parser.
 #[derive(SolrCommonQueryParser, SolrStandardQueryParser)]
 pub struct StandardQueryBuilder {
     params: HashMap<String, String>,
