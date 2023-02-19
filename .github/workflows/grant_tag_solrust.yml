@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: sal
       - uses: salsify/action-detect-and-tag-new-version@v2
         id: detect_tag
         with:
