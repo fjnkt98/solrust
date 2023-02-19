@@ -5,6 +5,7 @@
 
 use crate::client::core::SolrCore;
 use crate::types::response::*;
+use core::time::Duration;
 use reqwest::Client;
 use thiserror::Error;
 use url::Url;
@@ -48,7 +49,9 @@ impl SolrClient {
 
         Ok(SolrClient {
             url: format!("{}://{}:{}", scheme, host, port),
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(3))
+                .build()?,
         })
     }
 
@@ -59,6 +62,7 @@ impl SolrClient {
         let response = self
             .client
             .get(format!("{}/{}", self.url, path))
+            .timeout(Duration::from_secs(3))
             .send()
             .await
             .map_err(|e| SolrClientError::RequestError(e))?

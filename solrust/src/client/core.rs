@@ -6,6 +6,7 @@
 //! and reload core can be performed through this struct.
 
 use crate::types::response::*;
+use core::time::Duration;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use serde::de::DeserializeOwned;
@@ -50,6 +51,7 @@ impl SolrCore {
             .client
             .get(format!("{}/solr/admin/cores", self.base_url))
             .query(&[("action", "status"), ("core", &self.name)])
+            .timeout(Duration::from_secs(3))
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
@@ -82,6 +84,7 @@ impl SolrCore {
             .client
             .get(format!("{}/solr/admin/cores", self.base_url))
             .query(&[("action", "reload"), ("core", &self.name)])
+            .timeout(Duration::from_secs(3))
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
@@ -113,6 +116,7 @@ impl SolrCore {
             .client
             .get(format!("{}/select", self.core_url))
             .query(params)
+            .timeout(Duration::from_secs(3))
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
@@ -178,6 +182,7 @@ impl SolrCore {
             .post(format!("{}/update", self.core_url))
             .header(CONTENT_TYPE, "application/json")
             .body(body)
+            .timeout(Duration::from_secs(3))
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
