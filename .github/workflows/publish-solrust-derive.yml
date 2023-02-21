@@ -1,0 +1,16 @@
+name: publish-solrust-derive
+run-name: publish-solrust-derive
+
+on:
+  push:
+    tags:
+      - "solrust_derive_v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: cd solrust_derive && cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

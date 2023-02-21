@@ -1,0 +1,16 @@
+name: publish-solrust
+run-name: publish-solrust
+
+on:
+  push:
+    tags:
+      - "solrust_v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: cd solrust && cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

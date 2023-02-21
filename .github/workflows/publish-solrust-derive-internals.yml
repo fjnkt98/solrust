@@ -1,0 +1,16 @@
+name: publish-solrust-derive-internals
+run-name: publish-solrust-derive-internals
+
+on:
+  push:
+    tags:
+      - "solrust_derive_internals_v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: cd solrust_derive_internals && cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
