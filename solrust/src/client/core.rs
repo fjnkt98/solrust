@@ -182,7 +182,7 @@ impl SolrCore {
             .post(format!("{}/update", self.core_url))
             .header(CONTENT_TYPE, "application/json")
             .body(body)
-            .timeout(Duration::from_secs(3))
+            .timeout(Duration::from_secs(60))
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
