@@ -413,6 +413,174 @@ impl From<RangeQueryOperand> for QueryOperand {
     }
 }
 
+/// Struct to building phrase query expression(e.g. text_en:"foo bar")
+pub struct PhraseQueryOperand {
+    field: String,
+    word: String,
+}
+
+impl SolrQueryOperandModel for PhraseQueryOperand {}
+
+impl PhraseQueryOperand {
+    pub fn new(field: &str, word: &str) -> Self {
+        Self {
+            field: String::from(field),
+            word: String::from(word),
+        }
+    }
+}
+
+impl Display for PhraseQueryOperand {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let field = RE.replace_all(&self.field, r"\$0");
+        let word = RE.replace_all(&self.word, r"\$0");
+        write!(f, r#"{}:"{}""#, field, word)?;
+        Ok(())
+    }
+}
+
+impl From<PhraseQueryOperand> for QueryOperand {
+    fn from(op: PhraseQueryOperand) -> QueryOperand {
+        QueryOperand(op.to_string())
+    }
+}
+
+// Struct to building boost query expression(e.g. text_en:foo^3)
+pub struct BoostQueryOperand {
+    field: String,
+    word: String,
+    boost: f64,
+}
+
+impl SolrQueryOperandModel for BoostQueryOperand {}
+
+impl BoostQueryOperand {
+    pub fn new(field: &str, word: &str, boost: f64) -> Self {
+        Self {
+            field: String::from(field),
+            word: String::from(word),
+            boost: boost,
+        }
+    }
+}
+
+impl Display for BoostQueryOperand {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let field = RE.replace_all(&self.field, r"\$0");
+        let word = RE.replace_all(&self.word, r"\$0");
+        write!(f, "{}:{}^{}", field, word, self.boost)?;
+        Ok(())
+    }
+}
+
+impl From<BoostQueryOperand> for QueryOperand {
+    fn from(op: BoostQueryOperand) -> QueryOperand {
+        QueryOperand(op.to_string())
+    }
+}
+
+/// Struct to building fuzzy query expression(e.g. text_en:foo~1)
+pub struct FuzzyQueryOperand {
+    field: String,
+    word: String,
+    fuzzy: u32,
+}
+
+impl SolrQueryOperandModel for FuzzyQueryOperand {}
+
+impl FuzzyQueryOperand {
+    pub fn new(field: &str, word: &str, fuzzy: u32) -> Self {
+        Self {
+            field: String::from(field),
+            word: String::from(word),
+            fuzzy: fuzzy,
+        }
+    }
+}
+
+impl Display for FuzzyQueryOperand {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let field = RE.replace_all(&self.field, r"\$0");
+        let word = RE.replace_all(&self.word, r"\$0");
+        write!(f, "{}:{}~{}", field, word, self.fuzzy)?;
+        Ok(())
+    }
+}
+
+impl From<FuzzyQueryOperand> for QueryOperand {
+    fn from(op: FuzzyQueryOperand) -> QueryOperand {
+        QueryOperand(op.to_string())
+    }
+}
+
+/// Struct to building proximity query expression(e.g. text_en:"foo bar"~1)
+pub struct ProximityQueryOperand {
+    field: String,
+    word: String,
+    proximity: u32,
+}
+
+impl SolrQueryOperandModel for ProximityQueryOperand {}
+
+impl ProximityQueryOperand {
+    pub fn new(field: &str, word: &str, proximity: u32) -> Self {
+        Self {
+            field: String::from(field),
+            word: String::from(word),
+            proximity: proximity,
+        }
+    }
+}
+
+impl Display for ProximityQueryOperand {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let field = RE.replace_all(&self.field, r"\$0");
+        let word = RE.replace_all(&self.word, r"\$0");
+        write!(f, r#"{}:"{}"~{}"#, field, word, self.proximity)?;
+        Ok(())
+    }
+}
+
+impl From<ProximityQueryOperand> for QueryOperand {
+    fn from(op: ProximityQueryOperand) -> QueryOperand {
+        QueryOperand(op.to_string())
+    }
+}
+
+/// Struct to building constant weight query expression(e.g. text_en:foo^=0)
+pub struct ConstantQueryOperand {
+    field: String,
+    word: String,
+    weight: f64,
+}
+
+impl SolrQueryOperandModel for ConstantQueryOperand {}
+
+impl ConstantQueryOperand {
+    pub fn new(field: &str, word: &str, weight: f64) -> Self {
+        Self {
+            field: String::from(field),
+            word: String::from(word),
+            weight: weight,
+        }
+    }
+}
+
+impl Display for ConstantQueryOperand {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let field = RE.replace_all(&self.field, r"\$0");
+        let word = RE.replace_all(&self.word, r"\$0");
+        write!(f, "{}:{}^={}", field, word, self.weight)?;
+        Ok(())
+    }
+}
+
+impl From<ConstantQueryOperand> for QueryOperand {
+    fn from(op: ConstantQueryOperand) -> QueryOperand {
+        QueryOperand(op.to_string())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -435,36 +603,35 @@ mod test {
         );
     }
 
-    // #[test]
-    // fn test_fuzzy_query_operand() {
-    //     let q = StandardQueryOperand::new("name", "alice").option(TermModifiers::Fuzzy(1));
-    //     assert_eq!(String::from("name:alice~1"), q.to_string());
-    // }
+    #[test]
+    fn test_fuzzy_query_operand() {
+        let q = FuzzyQueryOperand::new("name", "alice", 1);
+        assert_eq!(String::from("name:alice~1"), q.to_string());
+    }
 
-    // #[test]
-    // fn test_proximity_query_operand() {
-    //     let q =
-    //         StandardQueryOperand::new("name", "alice wonder").option(TermModifiers::Proximity(2));
-    //     assert_eq!(String::from(r#"name:"alice wonder"~2"#), q.to_string());
-    // }
+    #[test]
+    fn test_proximity_query_operand() {
+        let q = ProximityQueryOperand::new("name", "alice wonder", 2);
+        assert_eq!(String::from(r#"name:"alice wonder"~2"#), q.to_string());
+    }
 
-    // #[test]
-    // fn test_boost_query_operand() {
-    //     let q = StandardQueryOperand::new("name", "alice").option(TermModifiers::Boost(10.0));
-    //     assert_eq!(String::from("name:alice^10"), q.to_string());
-    // }
+    #[test]
+    fn test_boost_query_operand() {
+        let q = BoostQueryOperand::new("name", "alice", 10.0);
+        assert_eq!(String::from("name:alice^10"), q.to_string());
+    }
 
-    // #[test]
-    // fn test_constant_query_operand() {
-    //     let q = StandardQueryOperand::new("name", "alice").option(TermModifiers::Constant(0.0));
-    //     assert_eq!(String::from("name:alice^=0"), q.to_string());
-    // }
+    #[test]
+    fn test_constant_query_operand() {
+        let q = ConstantQueryOperand::new("name", "alice", 0.0);
+        assert_eq!(String::from("name:alice^=0"), q.to_string());
+    }
 
-    // #[test]
-    // fn test_phrase_query_operand() {
-    //     let q = PhraseQueryOperand::new("name", "alice");
-    //     assert_eq!(String::from(r#"name:"alice""#), q.to_string());
-    // }
+    #[test]
+    fn test_phrase_query_operand() {
+        let q = PhraseQueryOperand::new("name", "alice");
+        assert_eq!(String::from(r#"name:"alice""#), q.to_string());
+    }
 
     #[test]
     fn test_range_query_with_default_parameter() {
