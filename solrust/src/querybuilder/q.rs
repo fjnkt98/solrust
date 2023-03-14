@@ -413,6 +413,38 @@ impl From<RangeQueryOperand> for QueryOperand {
     }
 }
 
+/// Struct to building phrase query expression(e.g. text_en:"foo bar")
+pub struct PhraseQueryOperand {
+    field: String,
+    word: String,
+}
+
+impl SolrQueryOperandModel for PhraseQueryOperand {}
+
+impl PhraseQueryOperand {
+    pub fn new(field: &str, word: &str) -> Self {
+        Self {
+            field: String::from(field),
+            word: String::from(word),
+        }
+    }
+}
+
+impl Display for PhraseQueryOperand {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let field = RE.replace_all(&self.field, r"\$0");
+        let word = RE.replace_all(&self.word, r"\$0");
+        write!(f, r#"{}:"{}""#, field, word)?;
+        Ok(())
+    }
+}
+
+impl From<PhraseQueryOperand> for QueryOperand {
+    fn from(op: PhraseQueryOperand) -> QueryOperand {
+        QueryOperand(op.to_string())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -460,11 +492,11 @@ mod test {
     //     assert_eq!(String::from("name:alice^=0"), q.to_string());
     // }
 
-    // #[test]
-    // fn test_phrase_query_operand() {
-    //     let q = PhraseQueryOperand::new("name", "alice");
-    //     assert_eq!(String::from(r#"name:"alice""#), q.to_string());
-    // }
+    #[test]
+    fn test_phrase_query_operand() {
+        let q = PhraseQueryOperand::new("name", "alice");
+        assert_eq!(String::from(r#"name:"alice""#), q.to_string());
+    }
 
     #[test]
     fn test_range_query_with_default_parameter() {
