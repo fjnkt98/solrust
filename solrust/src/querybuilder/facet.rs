@@ -1,5 +1,6 @@
 //! This module defines the traits and structs that generates query parameters for facet search.
 
+use std::string::ToString;
 /// Build parameters for facet search.
 pub trait FacetBuilder {
     fn build(&self) -> Vec<(String, String)>;
@@ -35,6 +36,7 @@ pub struct FieldFacetBuilder {
     missing: Option<bool>,
     method: Option<String>,
     exists: Option<bool>,
+    local_params: Vec<(String, String)>,
 }
 
 impl FieldFacetBuilder {
@@ -51,6 +53,7 @@ impl FieldFacetBuilder {
             missing: None,
             method: None,
             exists: None,
+            local_params: Vec::new(),
         }
     }
 
@@ -120,13 +123,34 @@ impl FieldFacetBuilder {
         self.exists = Some(exists);
         self
     }
+
+    /// Add a local parameter for faceting.
+    pub fn local_param(mut self, key: &str, value: &str) -> Self {
+        self.local_params.push((key.to_string(), value.to_string()));
+        self
+    }
 }
 
 impl FacetBuilder for FieldFacetBuilder {
     fn build(&self) -> Vec<(String, String)> {
         let mut result: Vec<(String, String)> = Vec::new();
 
-        result.push((String::from("facet.field"), self.field.clone()));
+        if self.local_params.len() == 0 {
+            result.push((String::from("facet.field"), self.field.clone()));
+        } else {
+            let local_param = format!(
+                "{{!{}}}",
+                self.local_params
+                    .iter()
+                    .map(|(key, value)| format!("{}={}", key, value))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            );
+            result.push((
+                String::from("facet.field"),
+                format!("{}{}", local_param, self.field),
+            ));
+        }
 
         if let Some(prefix) = &self.prefix {
             result.push((format!("f.{}.facet.prefix", self.field), prefix.to_string()));
@@ -209,18 +233,20 @@ pub struct RangeFacetBuilder {
     hardend: Option<bool>,
     other: Option<RangeFacetOtherOptions>,
     include: Option<RangeFacetIncludeOptions>,
+    local_params: Vec<(String, String)>,
 }
 
 impl RangeFacetBuilder {
-    pub fn new(field: &str, start: String, end: String, gap: String) -> Self {
+    pub fn new(field: &str, start: impl ToString, end: impl ToString, gap: impl ToString) -> Self {
         Self {
             field: field.to_string(),
-            start: start,
-            end: end,
-            gap: gap,
+            start: start.to_string(),
+            end: end.to_string(),
+            gap: gap.to_string(),
             hardend: None,
             other: None,
             include: None,
+            local_params: Vec::new(),
         }
     }
 
@@ -241,13 +267,35 @@ impl RangeFacetBuilder {
         self.include = Some(include);
         self
     }
+
+    /// Add a local parameter for faceting.
+    pub fn local_param(mut self, key: &str, value: &str) -> Self {
+        self.local_params.push((key.to_string(), value.to_string()));
+        self
+    }
 }
 
 impl FacetBuilder for RangeFacetBuilder {
     fn build(&self) -> Vec<(String, String)> {
         let mut result = Vec::new();
 
-        result.push((String::from("facet.range"), self.field.clone()));
+        if self.local_params.len() == 0 {
+            result.push((String::from("facet.range"), self.field.clone()));
+        } else {
+            let local_param = format!(
+                "{{!{}}}",
+                self.local_params
+                    .iter()
+                    .map(|(key, value)| format!("{}={}", key, value))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            );
+            result.push((
+                String::from("facet.range"),
+                format!("{}{}", local_param, self.field),
+            ));
+        }
+
         result.push((
             format!("f.{}.facet.range.start", self.field),
             self.start.clone(),
@@ -301,14 +349,15 @@ impl FacetBuilder for RangeFacetBuilder {
 #[cfg(test)]
 mod test {
     use super::*;
+    use itertools::{sorted, Itertools};
 
     #[test]
     fn test_simple_field_facet() {
         let builder = FieldFacetBuilder::new("category");
 
         assert_eq!(
+            builder.build(),
             vec![(String::from("facet.field"), String::from("category"))],
-            builder.build()
         );
     }
 
@@ -325,73 +374,83 @@ mod test {
             .missing(false)
             .method(FieldFacetMethod::Fc)
             .exists(false);
-
-        assert_eq!(
+        let actual = sorted(builder.build()).collect_vec();
+        let expected = sorted(
             vec![
-                (String::from("facet.field"), String::from("category")),
-                (String::from("f.category.facet.prefix"), String::from("A")),
-                (
-                    String::from("f.category.facet.contains"),
-                    String::from("like")
-                ),
-                (
-                    String::from("f.category.facet.contains.ignoreCase"),
-                    String::from("true")
-                ),
-                (String::from("f.category.facet.sort"), String::from("count")),
-                (String::from("f.category.facet.limit"), String::from("100")),
-                (String::from("f.category.facet.offset"), String::from("0")),
-                (String::from("f.category.facet.mincount"), String::from("1")),
-                (
-                    String::from("f.category.facet.missing"),
-                    String::from("false")
-                ),
-                (String::from("f.category.facet.method"), String::from("fc")),
-                (
-                    String::from("f.category.facet.exists"),
-                    String::from("false")
-                ),
-            ],
-            builder.build()
+                ("facet.field", "category"),
+                ("f.category.facet.prefix", "A"),
+                ("f.category.facet.contains", "like"),
+                ("f.category.facet.contains.ignoreCase", "true"),
+                ("f.category.facet.sort", "count"),
+                ("f.category.facet.limit", "100"),
+                ("f.category.facet.offset", "0"),
+                ("f.category.facet.mincount", "1"),
+                ("f.category.facet.missing", "false"),
+                ("f.category.facet.method", "fc"),
+                ("f.category.facet.exists", "false"),
+            ]
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.to_string())),
         )
+        .collect_vec();
+
+        assert_eq!(actual, expected)
+    }
+
+    #[test]
+    fn test_field_facet_with_local_params() {
+        let builder = FieldFacetBuilder::new("category")
+            .min_count(0)
+            .local_param("ex", "dt");
+        let expected = vec![
+            ("facet.field", "{!ex=dt}category"),
+            ("f.category.facet.mincount", "0"),
+        ]
+        .iter()
+        .map(|(key, value)| (key.to_string(), value.to_string()))
+        .collect_vec();
+        assert_eq!(builder.build(), expected);
     }
 
     #[test]
     fn test_range_facet() {
-        let builder = RangeFacetBuilder::new(
-            "difficulty",
-            0.to_string(),
-            2000.to_string(),
-            400.to_string(),
-        )
-        .include(RangeFacetIncludeOptions::Lower)
-        .other(RangeFacetOtherOptions::All);
-
-        assert_eq!(
+        let builder = RangeFacetBuilder::new("difficulty", 0, 2000, 400)
+            .include(RangeFacetIncludeOptions::Lower)
+            .other(RangeFacetOtherOptions::All);
+        let actual = sorted(builder.build()).collect_vec();
+        let expected = sorted(
             vec![
-                (String::from("facet.range"), String::from("difficulty")),
-                (
-                    String::from("f.difficulty.facet.range.start"),
-                    String::from("0")
-                ),
-                (
-                    String::from("f.difficulty.facet.range.end"),
-                    String::from("2000")
-                ),
-                (
-                    String::from("f.difficulty.facet.range.gap"),
-                    String::from("400")
-                ),
-                (
-                    String::from("f.difficulty.facet.range.other"),
-                    String::from("all")
-                ),
-                (
-                    String::from("f.difficulty.facet.range.include"),
-                    String::from("lower")
-                ),
-            ],
-            builder.build()
+                ("facet.range", "difficulty"),
+                ("f.difficulty.facet.range.start", "0"),
+                ("f.difficulty.facet.range.end", "2000"),
+                ("f.difficulty.facet.range.gap", "400"),
+                ("f.difficulty.facet.range.other", "all"),
+                ("f.difficulty.facet.range.include", "lower"),
+            ]
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.to_string())),
         )
+        .collect_vec();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_range_facet_with_local_params() {
+        let builder = RangeFacetBuilder::new("difficulty", 0, 2000, 400).local_param("ex", "dt");
+        let actual = sorted(builder.build()).collect_vec();
+        let expected = sorted(
+            vec![
+                ("facet.range", "{!ex=dt}difficulty"),
+                ("f.difficulty.facet.range.start", "0"),
+                ("f.difficulty.facet.range.end", "2000"),
+                ("f.difficulty.facet.range.gap", "400"),
+            ]
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.to_string())),
+        )
+        .collect_vec();
+
+        assert_eq!(actual, expected);
     }
 }
