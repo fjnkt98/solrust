@@ -21,11 +21,19 @@ pub fn impl_common_query_parser(input: TokenStream) -> TokenStream {
                 self
             }
 
-            fn fq(mut self, fq: &impl SolrQueryExpression) -> Self {
+            fn fq(mut self, fq: &impl SolrQueryExpression, local_params: Option<&[(impl ToString, impl ToString)]>) -> Self {
+                let local_params = local_params.and_then(|params| if params.len() == 0 { None } else { Some(params) });
+                let fq = match params {
+                    Some(params) => {
+                        let params = params.iter().map(|(key, value)| format!("{}={}", key, value)).collect::<Vec<_>>().join(" ");
+                        format!("{{!{}}}{}", params, fq.to_string())
+                    }
+                    None => fq.to_string()
+                };
                 self.multi_params
                     .entry("fq".to_string())
                     .or_default()
-                    .push(fq.to_string());
+                    .push(fq);
                 self
             }
 
