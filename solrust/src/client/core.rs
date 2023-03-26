@@ -31,6 +31,7 @@ pub struct SolrCore {
     pub base_url: String,
     pub core_url: String,
     client: Client,
+    timeout: Option<Duration>,
 }
 
 impl SolrCore {
@@ -42,16 +43,27 @@ impl SolrCore {
             base_url: String::from(base_url),
             core_url: core_url,
             client: reqwest::Client::new(),
+            timeout: None,
         }
+    }
+
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+
+        self
     }
 
     /// Method to get core status.
     pub async fn status(&self) -> Result<SolrCoreStatus> {
-        let response = self
+        let mut request = self
             .client
             .get(format!("{}/solr/admin/cores", self.base_url))
-            .query(&[("action", "status"), ("core", &self.name)])
-            .timeout(Duration::from_secs(3))
+            .query(&[("action", "status"), ("core", &self.name)]);
+        if let Some(timeout) = &self.timeout {
+            request = request.timeout(timeout.clone());
+        }
+
+        let response = request
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
@@ -80,11 +92,15 @@ impl SolrCore {
 
     /// Method to request the core to reload.
     pub async fn reload(&self) -> Result<u32> {
-        let response = self
+        let mut request = self
             .client
             .get(format!("{}/solr/admin/cores", self.base_url))
-            .query(&[("action", "reload"), ("core", &self.name)])
-            .timeout(Duration::from_secs(3))
+            .query(&[("action", "reload"), ("core", &self.name)]);
+        if let Some(timeout) = &self.timeout {
+            request = request.timeout(timeout.clone());
+        }
+
+        let response = request
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
@@ -112,11 +128,15 @@ impl SolrCore {
     where
         D: Serialize + DeserializeOwned,
     {
-        let response = self
+        let mut request = self
             .client
             .get(format!("{}/select", self.core_url))
-            .query(params)
-            .timeout(Duration::from_secs(3))
+            .query(params);
+        if let Some(timeout) = &self.timeout {
+            request = request.timeout(timeout.clone())
+        }
+
+        let response = request
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
@@ -182,7 +202,6 @@ impl SolrCore {
             .post(format!("{}/update", self.core_url))
             .header(CONTENT_TYPE, "application/json")
             .body(body)
-            .timeout(Duration::from_secs(60))
             .send()
             .await
             .map_err(|e| SolrCoreError::RequestError(e))?;
