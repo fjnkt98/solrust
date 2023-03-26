@@ -3,8 +3,10 @@
 use crate::querybuilder::common::SolrCommonQueryBuilder;
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
+use crate::querybuilder::sanitizer::SOLR_SPECIAL_CHARACTERS;
 use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::{SolrCommonQueryParser, SolrStandardQueryParser};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// The trait of builder that generates parameter for [Solr Standard Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/standard-query-parser.html).

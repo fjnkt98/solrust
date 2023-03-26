@@ -3,8 +3,10 @@
 use crate::querybuilder::common::SolrCommonQueryBuilder;
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
+use crate::querybuilder::sanitizer::SOLR_SPECIAL_CHARACTERS;
 use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::{SolrCommonQueryParser, SolrDisMaxQueryParser};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// The trait of builder that generates parameter for [Solr Standard Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/dismax-query-parser.html).
@@ -58,6 +60,7 @@ impl DisMaxQueryBuilder {
 mod test {
     use super::*;
     use crate::querybuilder::q::QueryOperand;
+    use itertools::{sorted, Itertools};
 
     #[test]
     fn test_q() {
@@ -71,6 +74,24 @@ mod test {
         let mut actual = builder.build();
         expected.sort();
         actual.sort();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_sanitized_q() {
+        let q = QueryOperand::from("Programming C++");
+        let builder = DisMaxQueryBuilder::new().q(q.to_string());
+
+        let expected = sorted(
+            vec![
+                ("defType".to_string(), "dismax".to_string()),
+                ("q".to_string(), "Programming C\\+\\+".to_string()),
+            ]
+            .into_iter()
+            .map(|(key, value)| (key.to_string(), value.to_string())),
+        )
+        .collect_vec();
+        let actual = sorted(builder.build()).collect_vec();
         assert_eq!(actual, expected);
     }
 

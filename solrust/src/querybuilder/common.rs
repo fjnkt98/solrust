@@ -2,8 +2,10 @@
 
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
+use crate::querybuilder::sanitizer::SOLR_SPECIAL_CHARACTERS;
 use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::SolrCommonQueryParser;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// The trait of builder that generates parameter for [Solr Common Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html).
@@ -36,6 +38,8 @@ pub trait SolrCommonQueryBuilder {
     fn op(self, op: Operator) -> Self;
     /// Build the parameters.
     fn build(self) -> Vec<(String, String)>;
+    /// Escape [Solr special characters](https://solr.apache.org/guide/solr/latest/query-guide/standard-query-parser.html#escaping-special-characters).
+    fn sanitize<'a>(&self, s: &'a str) -> Cow<'a, str>;
 }
 
 /// Implementation of Solr Common Query Parser.
