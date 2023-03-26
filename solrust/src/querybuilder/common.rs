@@ -2,9 +2,12 @@
 
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
+use crate::querybuilder::sanitizer::SOLR_SPECIAL_CHARACTERS;
 use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::SolrCommonQueryParser;
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fmt::Display;
 
 /// The trait of builder that generates parameter for [Solr Common Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html).
 pub trait SolrCommonQueryBuilder {
@@ -18,6 +21,14 @@ pub trait SolrCommonQueryBuilder {
     ///
     /// `fq` parameter will be added as many times as this method is called.
     fn fq(self, fq: &impl SolrQueryExpression) -> Self;
+    /// Add [fq parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#fq-filter-query-parameter) with local parameters.
+    ///
+    /// `fq` parameter will be added as many times as this method is called.
+    fn fq_with_local_params(
+        self,
+        fq: &impl SolrQueryExpression,
+        local_params: &[(impl Display, impl Display)],
+    ) -> Self;
     /// Add [fl parameter](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#fl-field-list-parameter)
     fn fl(self, fl: String) -> Self;
     /// Add parameters for [debug](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html#debug-parameter).
@@ -30,12 +41,22 @@ pub trait SolrCommonQueryBuilder {
     ///
     /// facet parameters will be added as many times as this method is called.
     fn facet(self, facet: &impl FacetBuilder) -> Self;
+    /// Add [facet parameters](https://solr.apache.org/guide/solr/latest/query-guide/faceting.html) with local parameters.
+    ///
+    /// facet parameters will be added as many times as this method is called.
+    fn facet_with_local_params(
+        self,
+        facet: &impl FacetBuilder,
+        local_params: &[(impl Display, impl Display)],
+    ) -> Self;
     /// Add `q.op` parameter.
     ///
     /// This parameter is not a Solr Common Query Parser parameter, but is defined here because it is used by all other query parsers.
     fn op(self, op: Operator) -> Self;
     /// Build the parameters.
     fn build(self) -> Vec<(String, String)>;
+    /// Escape [Solr special characters](https://solr.apache.org/guide/solr/latest/query-guide/standard-query-parser.html#escaping-special-characters).
+    fn sanitize<'a>(&self, s: &'a str) -> Cow<'a, str>;
 }
 
 /// Implementation of Solr Common Query Parser.
@@ -101,6 +122,17 @@ mod test {
     }
 
     #[test]
+    fn test_fq_with_local_params() {
+        let op = QueryOperand::from("name:alice");
+        let builder = CommonQueryBuilder::new().fq_with_local_params(&op, &[("tag", "name")]);
+
+        assert_eq!(
+            builder.build(),
+            vec![("fq".to_string(), "{!tag=name}name:alice".to_string())],
+        );
+    }
+
+    #[test]
     fn test_with_multiple_fq() {
         let builder = CommonQueryBuilder::new()
             .fq(&QueryOperand::from("name:alice"))
@@ -143,6 +175,26 @@ mod test {
         let mut expected = vec![
             (String::from("facet"), String::from("true")),
             (String::from("facet.field"), String::from("gender")),
+            (String::from("f.gender.facet.sort"), String::from("count")),
+        ];
+        let mut actual = builder.build();
+        expected.sort();
+        actual.sort();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_facet_with_local_params() {
+        let facet = FieldFacetBuilder::new("gender").sort(FieldFacetSortOrder::Count);
+        let builder = CommonQueryBuilder::new().facet_with_local_params(&facet, &[("ex", "name")]);
+
+        let mut expected = vec![
+            (String::from("facet"), String::from("true")),
+            (
+                String::from("facet.field"),
+                String::from("{!ex=name}gender"),
+            ),
             (String::from("f.gender.facet.sort"), String::from("count")),
         ];
         let mut actual = builder.build();

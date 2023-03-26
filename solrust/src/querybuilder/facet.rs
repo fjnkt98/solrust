@@ -1,5 +1,7 @@
 //! This module defines the traits and structs that generates query parameters for facet search.
 
+use std::string::ToString;
+
 /// Build parameters for facet search.
 pub trait FacetBuilder {
     fn build(&self) -> Vec<(String, String)>;
@@ -212,12 +214,12 @@ pub struct RangeFacetBuilder {
 }
 
 impl RangeFacetBuilder {
-    pub fn new(field: &str, start: String, end: String, gap: String) -> Self {
+    pub fn new(field: &str, start: impl ToString, end: impl ToString, gap: impl ToString) -> Self {
         Self {
             field: field.to_string(),
-            start: start,
-            end: end,
-            gap: gap,
+            start: start.to_string(),
+            end: end.to_string(),
+            gap: gap.to_string(),
             hardend: None,
             other: None,
             include: None,
@@ -358,14 +360,9 @@ mod test {
 
     #[test]
     fn test_range_facet() {
-        let builder = RangeFacetBuilder::new(
-            "difficulty",
-            0.to_string(),
-            2000.to_string(),
-            400.to_string(),
-        )
-        .include(RangeFacetIncludeOptions::Lower)
-        .other(RangeFacetOtherOptions::All);
+        let builder = RangeFacetBuilder::new("difficulty", 0, 2000, 400)
+            .include(RangeFacetIncludeOptions::Lower)
+            .other(RangeFacetOtherOptions::All);
 
         assert_eq!(
             vec![

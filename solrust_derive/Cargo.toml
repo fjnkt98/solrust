@@ -11,4 +11,4 @@ version = "0.1.0"
 proc-macro = true
 
 [dependencies]
-solrust_derive_internals = "0.1.0"
+solrust_derive_internals = {path = "../solrust_derive_internals", version = "^0.1.0"}

@@ -4,9 +4,12 @@ use crate::querybuilder::common::SolrCommonQueryBuilder;
 use crate::querybuilder::dismax::SolrDisMaxQueryBuilder;
 use crate::querybuilder::facet::FacetBuilder;
 use crate::querybuilder::q::{Operator, SolrQueryExpression};
+use crate::querybuilder::sanitizer::SOLR_SPECIAL_CHARACTERS;
 use crate::querybuilder::sort::SortOrderBuilder;
 use solrust_derive::{SolrCommonQueryParser, SolrDisMaxQueryParser, SolrEDisMaxQueryParser};
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fmt::Display;
 
 /// The trait of builder that generates parameter for [Solr eDisMax Query Parser](https://solr.apache.org/guide/solr/latest/query-guide/edismax-query-parser.html).
 pub trait SolrEDisMaxQueryBuilder: SolrDisMaxQueryBuilder {
