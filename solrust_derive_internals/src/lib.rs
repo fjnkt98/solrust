@@ -84,6 +84,10 @@ pub fn impl_common_query_parser(input: TokenStream) -> TokenStream {
 
                 params
             }
+
+            fn sanitize(&self, s: &str) -> Cow<str> {
+                SOLR_SPECIAL_CHARACTERS.replace_all(s, r"\$0")
+            }
         }
     };
     gen.into()
