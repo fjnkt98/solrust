@@ -130,7 +130,7 @@ pub fn impl_dismax_query_parser(input: TokenStream) -> TokenStream {
         impl SolrDisMaxQueryBuilder for #struct_name {
             fn q(mut self, q: String) -> Self {
                 // TODO: 引数の型を抽象モデルに変更する
-                self.params.insert("q".to_string(), q.to_string());
+                self.params.insert("q".to_string(), self.sanitize(&q).to_string());
                 self
             }
 
