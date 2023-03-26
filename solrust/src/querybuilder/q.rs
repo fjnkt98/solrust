@@ -1,14 +1,8 @@
 //! This module defines structs represent query operand and query expression for Solr Standard Query Parser.
 
-use once_cell::sync::Lazy;
-use regex::Regex;
+use crate::querybuilder::sanitizer::SOLR_SPECIAL_CHARACTERS;
 use std::fmt::{Display, Formatter};
 use std::ops;
-
-/// Regex object for sanitizing the [Solr special characters](https://solr.apache.org/guide/solr/latest/query-guide/standard-query-parser.html#escaping-special-characters).
-static RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"(\+|\-|&&|\|\||!|\(|\)|\{|\}|\[|\]|\^|"|\~|\*|\?|:|/|AND|OR)"#).unwrap()
-});
 
 /// Marker trait of Solr query expression.
 pub trait SolrQueryExpression: Display {}
@@ -325,9 +319,8 @@ impl StandardQueryOperand {
 
 impl Display for StandardQueryOperand {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let field = RE.replace_all(&self.field, r"\$0");
-        let word = RE.replace_all(&self.word, r"\$0");
-        write!(f, "{}:{}", field, word)?;
+        let word = SOLR_SPECIAL_CHARACTERS.replace_all(&self.word, r"\$0");
+        write!(f, "{}:{}", &self.field, word)?;
         Ok(())
     }
 }
@@ -351,7 +344,6 @@ impl SolrQueryOperandModel for RangeQueryOperand {}
 
 impl RangeQueryOperand {
     pub fn new(field: &str) -> Self {
-        let field = RE.replace_all(field, r"\$0");
         Self {
             field: String::from(field),
             start: None,
@@ -390,11 +382,11 @@ impl Display for RangeQueryOperand {
         let left_parenthesis = if self.left_open { '{' } else { '[' };
         let right_parenthesis = if self.right_open { '}' } else { ']' };
         let start = match &self.start {
-            Some(start) => String::from(RE.replace_all(start, r"\$0")),
+            Some(start) => String::from(SOLR_SPECIAL_CHARACTERS.replace_all(start, r"\$0")),
             None => String::from("*"),
         };
         let end = match &self.end {
-            Some(end) => String::from(RE.replace_all(end, r"\$0")),
+            Some(end) => String::from(SOLR_SPECIAL_CHARACTERS.replace_all(end, r"\$0")),
             None => String::from("*"),
         };
 
@@ -432,9 +424,8 @@ impl PhraseQueryOperand {
 
 impl Display for PhraseQueryOperand {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let field = RE.replace_all(&self.field, r"\$0");
-        let word = RE.replace_all(&self.word, r"\$0");
-        write!(f, r#"{}:"{}""#, field, word)?;
+        let word = SOLR_SPECIAL_CHARACTERS.replace_all(&self.word, r"\$0");
+        write!(f, r#"{}:"{}""#, &self.field, word)?;
         Ok(())
     }
 }
@@ -466,9 +457,8 @@ impl BoostQueryOperand {
 
 impl Display for BoostQueryOperand {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let field = RE.replace_all(&self.field, r"\$0");
-        let word = RE.replace_all(&self.word, r"\$0");
-        write!(f, "{}:{}^{}", field, word, self.boost)?;
+        let word = SOLR_SPECIAL_CHARACTERS.replace_all(&self.word, r"\$0");
+        write!(f, "{}:{}^{}", &self.field, word, self.boost)?;
         Ok(())
     }
 }
@@ -500,9 +490,8 @@ impl FuzzyQueryOperand {
 
 impl Display for FuzzyQueryOperand {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let field = RE.replace_all(&self.field, r"\$0");
-        let word = RE.replace_all(&self.word, r"\$0");
-        write!(f, "{}:{}~{}", field, word, self.fuzzy)?;
+        let word = SOLR_SPECIAL_CHARACTERS.replace_all(&self.word, r"\$0");
+        write!(f, "{}:{}~{}", &self.field, word, self.fuzzy)?;
         Ok(())
     }
 }
@@ -534,9 +523,8 @@ impl ProximityQueryOperand {
 
 impl Display for ProximityQueryOperand {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let field = RE.replace_all(&self.field, r"\$0");
-        let word = RE.replace_all(&self.word, r"\$0");
-        write!(f, r#"{}:"{}"~{}"#, field, word, self.proximity)?;
+        let word = SOLR_SPECIAL_CHARACTERS.replace_all(&self.word, r"\$0");
+        write!(f, r#"{}:"{}"~{}"#, &self.field, word, self.proximity)?;
         Ok(())
     }
 }
@@ -568,9 +556,8 @@ impl ConstantQueryOperand {
 
 impl Display for ConstantQueryOperand {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let field = RE.replace_all(&self.field, r"\$0");
-        let word = RE.replace_all(&self.word, r"\$0");
-        write!(f, "{}:{}^={}", field, word, self.weight)?;
+        let word = SOLR_SPECIAL_CHARACTERS.replace_all(&self.word, r"\$0");
+        write!(f, "{}:{}^={}", &self.field, word, self.weight)?;
         Ok(())
     }
 }
