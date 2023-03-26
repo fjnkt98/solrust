@@ -17,8 +17,8 @@ reqwest = {version = "0.11.13", features = ["json"]}
 serde = {version = "^1.0.148", features = ["derive"]}
 serde_json = "^1.0.89"
 serde_with = "^2.2.0"
-solrust_derive = "^0.1.0"
-solrust_derive_internals = "^0.1.0"
+solrust_derive = {path = "../solrust_derive", version = "^0.1.0"}
+solrust_derive_internals = {path = "../solrust_derive_internals", version = "^0.1.0"}
 thiserror = "1.0.38"
 tracing = "^0.1.37"
 tracing-subscriber = {version = "^0.3.16", features = ["env-filter"]}
