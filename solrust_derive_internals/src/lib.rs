@@ -29,6 +29,27 @@ pub fn impl_common_query_parser(input: TokenStream) -> TokenStream {
                 self
             }
 
+            fn fq_with_local_params(
+                mut self,
+                fq: &impl SolrQueryExpression,
+                local_params: &[(impl Display, impl Display)],
+            ) -> Self {
+                let local_params = format!(
+                    "{{!{}}}",
+                    local_params
+                        .iter()
+                        .map(|(key, value)| format!("{}={}", key, value))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                );
+                let fq = format!("{}{}", local_params, fq.to_string());
+                self.multi_params
+                    .entry("fq".to_string())
+                    .or_default()
+                    .push(fq);
+                self
+            }
+
             fn fl(mut self, fl: String) -> Self {
                 self.params.insert("fl".to_string(), fl);
                 self
@@ -60,6 +81,35 @@ pub fn impl_common_query_parser(input: TokenStream) -> TokenStream {
                     }
                 }
                 self
+            }
+
+            fn facet_with_local_params(
+                mut self,
+                facet: &impl FacetBuilder,
+                local_params: &[(impl Display, impl Display)],
+            ) -> Self {
+                let local_params = format!(
+                    "{{!{}}}",
+                    local_params
+                        .iter()
+                        .map(|(key, value)| format!("{}={}", key, value))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                );
+                self.params.insert("facet".to_string(), "true".to_string());
+                for (key, value) in facet.build() {
+                    // facet.fieldパラメータは複数値を取れるパラメータなので別で処理する
+                    if key == "facet.field".to_string() {
+                        self.multi_params
+                            .entry("facet.field".to_string())
+                            .or_default()
+                            .push(format!("{}{}", local_params, value));
+                    } else {
+                        self.params.insert(key, value);
+                    }
+                }
+                self
+
             }
 
             fn op(mut self, op: Operator) -> Self {
