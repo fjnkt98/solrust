@@ -98,10 +98,9 @@ pub fn impl_common_query_parser(input: TokenStream) -> TokenStream {
                 );
                 self.params.insert("facet".to_string(), "true".to_string());
                 for (key, value) in facet.build() {
-                    // facet.fieldパラメータは複数値を取れるパラメータなので別で処理する
-                    if key == "facet.field".to_string() {
+                    if &key == "facet.field" || &key == "facet.range" {
                         self.multi_params
-                            .entry("facet.field".to_string())
+                            .entry(key.clone())
                             .or_default()
                             .push(format!("{}{}", local_params, value));
                     } else {
