@@ -78,7 +78,7 @@ impl CommonQueryBuilder {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::querybuilder::facet::{FieldFacetBuilder, FieldFacetSortOrder};
+    use crate::querybuilder::facet::{FieldFacetBuilder, FieldFacetSortOrder, RangeFacetBuilder};
     use crate::querybuilder::q::QueryOperand;
 
     #[test]
@@ -185,7 +185,7 @@ mod test {
     }
 
     #[test]
-    fn test_facet_with_local_params() {
+    fn test_field_facet_with_local_params() {
         let facet = FieldFacetBuilder::new("gender").sort(FieldFacetSortOrder::Count);
         let builder = CommonQueryBuilder::new().facet_with_local_params(&facet, &[("ex", "name")]);
 
@@ -196,6 +196,25 @@ mod test {
                 String::from("{!ex=name}gender"),
             ),
             (String::from("f.gender.facet.sort"), String::from("count")),
+        ];
+        let mut actual = builder.build();
+        expected.sort();
+        actual.sort();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_range_facet_with_local_params() {
+        let facet = RangeFacetBuilder::new("age", 0, 60, 10);
+        let builder = CommonQueryBuilder::new().facet_with_local_params(&facet, &[("ex", "age")]);
+
+        let mut expected = vec![
+            (String::from("facet"), String::from("true")),
+            (String::from("facet.range"), String::from("{!ex=age}age")),
+            (String::from("f.age.facet.range.start"), String::from("0")),
+            (String::from("f.age.facet.range.end"), String::from("60")),
+            (String::from("f.age.facet.range.gap"), String::from("10")),
         ];
         let mut actual = builder.build();
         expected.sort();
