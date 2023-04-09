@@ -18,6 +18,14 @@ pub struct SolrResponseHeader {
     pub params: Option<HashMap<String, Value>>,
 }
 
+/// Model of the response which ping api returns.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SolrPingResponse {
+    #[serde(alias = "responseHeader")]
+    pub header: SolrResponseHeader,
+    pub status: String,
+}
+
 /// Model of `error` field.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolrErrorInfo {

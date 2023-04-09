@@ -53,6 +53,27 @@ impl SolrCore {
         self
     }
 
+    /// Method to ping the core.
+    pub async fn ping(&self) -> Result<SolrPingResponse> {
+        let mut request = self.client.get(format!("{}/admin/ping", self.core_url));
+        if let Some(timeout) = &self.timeout {
+            request = request.timeout(timeout.clone());
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|e| SolrCoreError::RequestError(e))?;
+        let content = response
+            .text()
+            .await
+            .map_err(|e| SolrCoreError::RequestError(e))?;
+
+        let response: SolrPingResponse =
+            serde_json::from_str(&content).map_err(|e| SolrCoreError::DeserializeError(e))?;
+        Ok(response)
+    }
+
     /// Method to get core status.
     pub async fn status(&self) -> Result<SolrCoreStatus> {
         let mut request = self
@@ -303,6 +324,22 @@ mod test {
     #[derive(Serialize, Deserialize)]
     struct Document {
         id: i64,
+    }
+
+    /// Normal system test of the function to ping api.
+    ///
+    /// Run this test with the Docker container started with the following command.
+    ///
+    /// ```ignore
+    /// docker run --rm -d -p 8983:8983 solr:9.1.0 solr-precreate example
+    /// ```
+    #[tokio::test]
+    #[ignore]
+    async fn test_ping() {
+        let core = SolrCore::new("example", "http://localhost:8983");
+        let response = core.ping().await.unwrap();
+
+        assert_eq!(response.status, String::from("OK"));
     }
 
     /// Normal system test of the function to search documents.
